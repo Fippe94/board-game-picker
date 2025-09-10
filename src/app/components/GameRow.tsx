@@ -1,11 +1,10 @@
 "use client";
 import type { Game } from "../lib/types";
-import { useSessionStore } from "../store/sessionStore";
-import { useShallow } from "zustand/shallow";
+import { useRoomStore } from "../store/roomStore";
 
 export function GameRow({ g, right }: { g: Game; right: React.ReactNode }) {
   
-    const isNominated = useSessionStore().isNominated;
+    const isNominated = useRoomStore().isNominated;
     var colorName = isNominated(g.id) ? "green" : "white";
     var className = `flex items-center justify-between rounded-xl border bg-${colorName} p-2`
   return (

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from 'react';
 import AvailableList from "./components/AvailableList";
 import NominatedList from "./components/NominatedList";
 import AddGameForm from "./components/AddGameForm";
@@ -7,17 +7,15 @@ import MyCollectionPicker from "./components/MyCollectionPicker";
 import { useSessionStore } from "./store/sessionStore";
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import 'react-tabs/style/react-tabs.css';
+import { useRoom } from "./lib/useRoom";
+const RT_URL = process.env.NEXT_PUBLIC_RT_URL || "http://161.35.43.235:3030";
 
 export default function Home() {
-  const seedIfEmpty = useSessionStore((s) => s.seedIfEmpty);
-  const resetAll = useSessionStore((s) => s.resetAll);
 
-
-  useEffect(() => {
-    seedIfEmpty();
-  }, [seedIfEmpty]);
-
-
+  const qs = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const startRoom = qs?.get("room") || undefined;
+  useRoom(RT_URL, startRoom); // initializes socket & store ONCE
+ 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       <header className="sticky top-0 z-20 backdrop-blur bg-white/80 border-b">
@@ -29,7 +27,6 @@ export default function Home() {
               <p className="text-xs text-gray-500">Two‑list MVP</p>
             </div>
           </div>
-          <button onClick={resetAll} className="px-3 py-1.5 rounded-xl border">Reset</button>
         </div>
       </header>
 

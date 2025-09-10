@@ -1,10 +1,8 @@
 "use client";
 import { useState } from "react";
-import { useSessionStore } from "../store/sessionStore";
-import { useShallow } from "zustand/shallow";
+import { roomActions } from "../lib/roomActions";
 
 export default function AddGameForm() {
-  const addToAvailable = useSessionStore(useShallow((s) => s.addToAvailable));
   const [title, setTitle] = useState("");
   const [minPlayers, setMin] = useState(1);
   const [maxPlayers, setMax] = useState(4);
@@ -13,7 +11,7 @@ export default function AddGameForm() {
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
-    addToAvailable({ id: "", title: title.trim(), minPlayers: Number(minPlayers), maxPlayers: Number(maxPlayers), time: time ? Number(time) : undefined });
+    roomActions.addAvailable({ title: title.trim(), minPlayers: Number(minPlayers), maxPlayers: Number(maxPlayers), time: time ? Number(time) : undefined });
     setTitle("");
     setTime("");
   };
