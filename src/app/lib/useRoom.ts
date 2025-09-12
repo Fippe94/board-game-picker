@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getSocket } from "./socketSingleton";
 import { useRoomStore } from "../store/roomStore";
 import { Socket } from 'socket.io-client';
+import router from 'next/router';
 
 // export type Game = { id: string; title: string; minPlayers?: number; maxPlayers?: number; time?: number };
 // export type RoomState = { available: Game[]; nominated: Game[] };
@@ -20,13 +21,18 @@ export function useRoom(rtUrl: string, initialRoom?: string) {
     s.on("connect", () => setConnected(true));
     s.on("disconnect", () => setConnected(false));
     s.on("room:snapshot", (snap) => setSnapshot(snap));
-    s.on("room:created", (id: string) => setRoom(id));
+    s.on("room:created", (id: string) => {
+      setRoom(id);
+      router.push("/session/${id}");
+    });
 
-    if (initialRoom) s.emit("room:join", initialRoom);
-    else s.emit('room:create');
+    if (initialRoom){
+      joinRoom(initialRoom);
+    }
+
     return () => {
       // do not disconnect the singleton here if other components still use it
-      //s.off("connect"); s.off("disconnect"); s.off("room:snapshot"); s.off("room:created");
+      s.off("connect"); s.off("disconnect"); s.off("room:snapshot"); s.off("room:created");
     };
   }, [rtUrl, initialRoom, setSnapshot, setRoom, setConnected]);
   

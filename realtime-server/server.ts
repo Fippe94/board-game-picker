@@ -2,8 +2,9 @@ import http from 'http';
 import { Server, Socket } from 'socket.io';
 import { randomBytes } from 'crypto';
 
-type Game = { id: string; title: string; minPlayers?: number; maxPlayers?: number; time?: number };
+type Game = { id: string; title: string; minPlayers?: number; maxPlayers?: number; time?: number; nominator?: string };
 type RoomState = { available: Game[]; nominated: Game[] };
+type Player = { nickName? : string}
 
 // In-memory rooms. Replace with DB later.
 const rooms = new Map<string, RoomState>();
@@ -44,23 +45,28 @@ io.on('connection', (socket: Socket) => {
     io.to(roomId).emit('room:snapshot', s);
   });
 
-  socket.on('game:nominate', (id: string) => {
+  socket.on('game:nominate', (id: string, nominator: string) => {
     if (!roomId) return;
     const s = rooms.get(roomId)!;
     const idx = s.available.findIndex(x => x.id === id);
     if (idx === -1) return;
-    const [g] = s.available.splice(idx, 1);
+    let g = s.available[idx];
+    g.nominator = nominator;
     s.nominated.push(g);
     io.to(roomId).emit('room:snapshot', s);
   });
 
-  socket.on('game:unnominate', (id: string) => {
+  socket.on('game:unnominate', (id: string, user : string) => {
     if (!roomId) return;
     const s = rooms.get(roomId)!;
     const idx = s.nominated.findIndex(x => x.id === id);
     if (idx === -1) return;
-    const [g] = s.nominated.splice(idx, 1);
-    s.available.push(g);
+    let g = s.nominated[idx];
+    // We only let the nominator remove the game
+    if (g.nominator != user){
+      return;
+    }
+    s.nominated.splice(idx, 1);
     io.to(roomId).emit('room:snapshot', s);
   });
 

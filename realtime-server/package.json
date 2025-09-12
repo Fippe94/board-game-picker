@@ -1,0 +1,17 @@
+{
+  "name": "board-picker-realtime",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p .",
+    "start": "node server.js",
+    "dev": "tsx watch server.ts"
+  },
+  "dependencies": {
+    "socket.io": "^4.7.5"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.4"
+  }
+}
