@@ -2,7 +2,7 @@
 import type { Game } from "../lib/types";
 import { useRoomStore } from "../store/roomStore";
 
-export function GameRow({ g, right, colorCondition = () => false }: { g: Game; right: React.ReactNode, colorCondition?: any }) {
+export function GameRow({ g, right, colorCondition = () => false }: { g: Game; right: React.ReactNode, colorCondition?: (id: string) => boolean }) {
   
   const isNominated = useRoomStore().isNominated;
     var colorName = colorCondition(g.id) ? "green" : "white";
