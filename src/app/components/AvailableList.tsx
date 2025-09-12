@@ -12,7 +12,7 @@ export default function AvailableList() {
   return (
     <div className="space-y-2">
       {available.map((g) => (
-        <GameRow key={g.id} g={g} colorCondition={isNominated} right={<button onClick={() => { if (!isNominated(g.id)) roomActions.nominate(g.id, user)}} className="text-xs px-2 py-1 rounded-md border">Nominate →</button>} />
+        <GameRow key={g.id} g={g} condition={isNominated} eventTrue={() => roomActions.unNominate(g.id,user)} eventFalse={() => roomActions.nominate(g.id,user)}  />
       ))}
     </div>
   );

@@ -8,6 +8,7 @@ type RoomStore = {
   available: Game[];
   nominated: Game[];
   isNominated: (id:string) => boolean;
+  isAvailable: (id:string) => boolean;
   setRoom: (id: string | null) => void;
   setConnected: (v: boolean) => void;
   setSnapshot: (snap: { available: Game[]; nominated: Game[] }) => void;
@@ -21,6 +22,10 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
     isNominated: (id) => {
     const nominated = get().nominated;
     return nominated.some(x => x.id === id);
+    },
+    isAvailable: (id) => {
+    const available = get().available;
+    return available.some(x => x.id === id);
     },
   setRoom: (id) => set({ roomId: id }),
   setConnected: (v) => set({ connected: v }),

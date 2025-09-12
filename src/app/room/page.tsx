@@ -9,7 +9,7 @@ function uid(n = 8) { return randomBytes(n).toString('hex'); }
 
 export default function Home() {
   const router = useRouter();
-  useRoom(RT_URL);
+  //useRoom(RT_URL);
   const create = () => {
     router.push(`/session/${uid(2)}`);
   };
