@@ -15,7 +15,7 @@ export const useSessionStore = create<SessionState>()(
     (set) => ({
       myCollection: [],
 
-      addToMyCollection: (g) => set((s) => ({ myCollection: [...s.myCollection, { ...g, id: g.id || uid() }] })),
+      addToMyCollection: (g) => set((s) => ({ myCollection: [...s.myCollection, g ]})),
 
     }),
     {

@@ -10,6 +10,8 @@ import { useParams } from "next/navigation";
 import { useUserStore } from '@/app/store/userStore';
 import { useRoomStore } from '@/app/store/roomStore';
 import { Player } from '@/app/lib/types';
+import { roomActions } from "@/app/lib/roomActions";
+import { useSessionStore } from "@/app/store/sessionStore";
 const RT_URL = process.env.NEXT_PUBLIC_RT_URL || "http://161.35.43.235:3030";
 
 export default function Home() {
@@ -17,6 +19,7 @@ export default function Home() {
   const nickname = useUserStore().nickname;
   console.log(nickname);
   useRoom(RT_URL, id, nickname); // initializes socket & store ONCE
+  const addToMyCollection = useSessionStore().addToMyCollection;
   const players = useRoomStore().players;
   const playerArray : Player[] = Array.from(players).map(x => x[1]);
   console.log(playerArray);
@@ -54,6 +57,12 @@ export default function Home() {
             <TabPanel>        
               <h2 className="text-base font-semibold mb-2">Collection</h2>
               <MyCollectionPicker />
+
+
+              <div className="mt-6 rounded-2xl border bg-white p-3 space-y-3">
+                <h3 className="text-sm font-semibold">Add game (manual)</h3>
+                <AddGameForm submitMethod={addToMyCollection} buttonText="Add to Collection" />
+              </div>     
             </TabPanel>
             
             <TabPanel>
@@ -62,7 +71,7 @@ export default function Home() {
                     
               <div className="mt-6 rounded-2xl border bg-white p-3 space-y-3">
                 <h3 className="text-sm font-semibold">Add game (manual)</h3>
-                <AddGameForm />
+                <AddGameForm submitMethod={roomActions.addAvailable} buttonText="Add to Available" />
               </div>              
             </TabPanel>
 

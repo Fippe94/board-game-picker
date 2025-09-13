@@ -1,8 +1,9 @@
 "use client";
 import { useState } from "react";
 import { roomActions } from "../lib/roomActions";
+import { Game } from "../lib/types"
 
-export default function AddGameForm() {
+export default function AddGameForm({submitMethod, buttonText}: {submitMethod: (g: Game) => void, buttonText: string}) {
   const [title, setTitle] = useState("");
   const [minPlayers, setMin] = useState(1);
   const [maxPlayers, setMax] = useState(4);
@@ -11,7 +12,8 @@ export default function AddGameForm() {
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
-    roomActions.addAvailable({ title: title.trim(), minPlayers: Number(minPlayers), maxPlayers: Number(maxPlayers), time: time ? Number(time) : undefined });
+    let game : Game = { id: title.trim(), title: title.trim(), minPlayers: Number(minPlayers), maxPlayers: Number(maxPlayers), time: time ? Number(time) : undefined }
+    submitMethod(game);
     setTitle("");
     setTime("");
   };
@@ -26,7 +28,7 @@ export default function AddGameForm() {
         <input type="number" value={minPlayers} onChange={(e) => setMin(parseInt(e.target.value))} placeholder="Min players" className="px-3 py-2 border rounded-lg" />
         <input type="number" value={maxPlayers} onChange={(e) => setMax(parseInt(e.target.value))} placeholder="Max players" className="px-3 py-2 border rounded-lg" />
       </div>
-      <button type="submit" className="px-3 py-2 rounded-xl bg-black text-white w-full">Add to Available</button>
+      <button type="submit" className="px-3 py-2 rounded-xl bg-black text-white w-full">{buttonText}</button>
     </form>
   );
 }
