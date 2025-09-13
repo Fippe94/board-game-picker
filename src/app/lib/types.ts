@@ -8,3 +8,8 @@ export type Game = {
   tags?: string[];
   nominator?: string;
 };
+
+export type Player = { 
+  id: string;
+  nickName? : string
+}

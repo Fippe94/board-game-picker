@@ -1,7 +1,5 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { roomActions } from "../lib/roomActions";
-import { useRoom } from "../lib/useRoom";
 import { randomBytes } from "crypto";
 
 const RT_URL = process.env.NEXT_PUBLIC_RT_URL || "http://localhost:3030";

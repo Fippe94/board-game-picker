@@ -1,23 +1,25 @@
 "use client";
-import { useEffect, useMemo, useState } from 'react';
 import AvailableList from "../../components/AvailableList";
 import NominatedList from "../../components/NominatedList";
 import AddGameForm from "../../components/AddGameForm";
 import MyCollectionPicker from "../../components/MyCollectionPicker";
-import { useSessionStore } from "../../store/sessionStore";
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import 'react-tabs/style/react-tabs.css';
 import { useRoom } from "../../lib/useRoom";
 import { useParams } from "next/navigation";
 import { useUserStore } from '@/app/store/userStore';
+import { useRoomStore } from '@/app/store/roomStore';
+import { Player } from '@/app/lib/types';
 const RT_URL = process.env.NEXT_PUBLIC_RT_URL || "http://161.35.43.235:3030";
 
 export default function Home() {
   const { id } = useParams<{ id: string }>();
   const nickname = useUserStore().nickname;
-  const qs = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-  useRoom(RT_URL, id); // initializes socket & store ONCE
- 
+  console.log(nickname);
+  useRoom(RT_URL, id, nickname); // initializes socket & store ONCE
+  const players = useRoomStore().players;
+  const playerArray : Player[] = Array.from(players).map(x => x[1]);
+  console.log(playerArray);
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       <header className="sticky top-0 z-20 backdrop-blur bg-white/80 border-b">
@@ -28,6 +30,13 @@ export default function Home() {
               <h1 className="text-lg font-semibold">Board Night</h1>
               <p className="text-xs text-gray-500">Two‑list MVP</p>
               <p className="text-xs text-gray-500">{nickname}</p>
+              {playerArray.length > 1 ? <h3 className="text-xs text-gray-500">Other players:</h3> : null}
+                    {playerArray.map(p => (p.nickName == nickname ? null :
+                      <div key={p.id}>
+                        <p className="text-xs text-gray-500">{p.nickName}</p>
+                      </div>
+                    )
+                    )}
             </div>
           </div>
         </div>
