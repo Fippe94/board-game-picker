@@ -2,7 +2,6 @@
 import { useRouter } from "next/navigation";
 import { randomBytes } from "crypto";
 
-const RT_URL = process.env.NEXT_PUBLIC_RT_URL || "http://localhost:3030";
 function uid(n = 8) { return randomBytes(n).toString('hex'); }
 
 export default function Home() {

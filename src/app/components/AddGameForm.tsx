@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import { roomActions } from "../lib/roomActions";
 import { Game } from "../lib/types"
 
 export default function AddGameForm({submitMethod, buttonText}: {submitMethod: (g: Game) => void, buttonText: string}) {
@@ -12,7 +11,7 @@ export default function AddGameForm({submitMethod, buttonText}: {submitMethod: (
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
-    let game : Game = { id: title.trim(), title: title.trim(), minPlayers: Number(minPlayers), maxPlayers: Number(maxPlayers), time: time ? Number(time) : undefined }
+    const game : Game = { id: title.trim(), title: title.trim(), minPlayers: Number(minPlayers), maxPlayers: Number(maxPlayers), time: time ? Number(time) : undefined }
     submitMethod(game);
     setTitle("");
     setTime("");

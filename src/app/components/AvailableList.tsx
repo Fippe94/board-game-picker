@@ -3,7 +3,6 @@ import { useShallow } from "zustand/shallow";
 import { useRoomStore } from "../store/roomStore";
 import { GameRow } from "./GameRow";
 import { roomActions } from "../lib/roomActions";
-import { useUserStore } from "../store/userStore";
 
 export default function AvailableList() {
   const { available, isNominated } = useRoomStore(useShallow((s) => ({ available: s.available,  isNominated:s.isNominated })));

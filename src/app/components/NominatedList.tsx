@@ -1,9 +1,7 @@
 "use client";
-import { useShallow } from "zustand/shallow";
 import { useRoomStore } from "../store/roomStore";
 import { roomActions } from "../lib/roomActions";
 import { GameRow } from "./GameRow";
-import { useUserStore } from "../store/userStore";
 
 export default function NominatedList() {
   const nominated = useRoomStore().nominated;

@@ -1,10 +1,8 @@
 "use client";
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { getSocket } from "./socketSingleton";
 import { useRoomStore } from "../store/roomStore";
 import { Socket } from 'socket.io-client';
-import router from 'next/router';
-import { useUserStore } from '../store/userStore';
 
 export function useRoom(rtUrl: string, initialRoom?: string, playerName: string = "") {
   const socketRef = useRef<Socket | null>(null);

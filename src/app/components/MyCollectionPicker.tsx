@@ -1,5 +1,4 @@
 "use client";
-import { useShallow } from "zustand/shallow";
 import { useSessionStore } from "../store/sessionStore";
 import { roomActions } from "../lib/roomActions";
 import { GameRow } from "./GameRow";

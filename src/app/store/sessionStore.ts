@@ -8,8 +8,6 @@ export type SessionState = {
   addToMyCollection: (g: Game) => void;
 };
 
-const uid = () => Math.random().toString(36).slice(2, 10);
-
 export const useSessionStore = create<SessionState>()(
   persist(
     (set) => ({
