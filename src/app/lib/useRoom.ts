@@ -21,6 +21,7 @@ export function useRoom(rtUrl: string, initialRoom?: string, playerName: string 
       setRoom(id);
     });
     if (initialRoom && player){
+      setRoom(initialRoom);
       joinRoom(initialRoom);
     }
 

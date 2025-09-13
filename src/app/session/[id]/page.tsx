@@ -21,6 +21,8 @@ export default function Home() {
   useRoom(RT_URL, id, nickname); // initializes socket & store ONCE
   const addToMyCollection = useSessionStore().addToMyCollection;
   const players = useRoomStore().players;
+  const roomId = useRoomStore().roomId;
+
   const playerArray : Player[] = Array.from(players).map(x => x[1]);
   console.log(playerArray);
   return (
@@ -30,13 +32,13 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-2xl bg-black text-white grid place-items-center font-bold">BG</div>
             <div>
-              <h1 className="text-lg font-semibold">Board Night</h1>
-              <p className="text-xs text-gray-500">Two‑list MVP</p>
+              <h1 className="text-lg font-semibold">Board Game Picker</h1>
+              <p className="text-xs text-gray-500">Room: {roomId}</p>
               <p className="text-xs text-gray-500">{nickname}</p>
               {playerArray.length > 1 ? <h3 className="text-xs text-gray-500">Other players:</h3> : null}
                     {playerArray.map(p => (p.nickName == nickname ? null :
                       <div key={p.id}>
-                        <p className="text-xs text-gray-500">{p.nickName}</p>
+                        <p className="text-xs text-gray-500">- {p.nickName}</p>
                       </div>
                     )
                     )}
