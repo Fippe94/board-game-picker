@@ -2,7 +2,8 @@
 import type { CSSProperties } from "react";
 import {
   DndContext,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   KeyboardSensor,
   closestCenter,
   useSensor,
@@ -26,9 +27,11 @@ interface VotingListProps {
 
 export default function VotingList({ games, onChange }: VotingListProps) {
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor),
+    useSensor(TouchSensor, {
       activationConstraint: {
-        distance: 8,
+        delay: 150,
+        tolerance: 5,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -100,6 +103,7 @@ function SortableVotingRow({ game, index }: { game: Game; index: number }) {
         type="button"
         className="rounded border border-gray-300 bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-200"
         aria-label={`Drag handle for ${game.title}`}
+        style={{ touchAction: "none" }}
         {...listeners}
         {...attributes}
       >
@@ -108,6 +112,11 @@ function SortableVotingRow({ game, index }: { game: Game; index: number }) {
     </div>
   );
 }
+
+
+
+
+
 
 
 
