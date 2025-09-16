@@ -29,13 +29,16 @@ export default function Home() {
   const playerArray: Player[] = Array.from(players.values());
   const currentPlayer = nickname ? players.get(nickname) : undefined;
   const isReady = currentPlayer?.ready ?? false;
-  const toggleReady = () => roomActions.setReady(!isReady);
+  const isVoting = phase === "voting";
+  const canToggleReady = !isVoting || !isReady;
+  const toggleReady = () => {
+    if (!canToggleReady) return;
+    roomActions.setReady(!isReady);
+  };
 
   const otherPlayers = currentPlayer
     ? playerArray.filter((p) => p.id !== currentPlayer.id)
     : playerArray;
-
-  const isVoting = phase === "voting";
   const [votingOrder, setVotingOrder] = useState<Game[]>([]);
 
   useEffect(() => {
@@ -81,12 +84,12 @@ export default function Home() {
             </span>
             <button
               onClick={toggleReady}
-              disabled={!nickname}
+              disabled={!nickname || !canToggleReady}
               className={`rounded-xl px-3 py-1 text-sm font-medium border transition ${
                 isReady ? "border-green-600 text-green-700 bg-green-50" : "border-black text-white bg-black"
-              } ${!nickname ? "opacity-50 cursor-not-allowed" : ""}`}
+              } ${(!nickname || !canToggleReady) ? "opacity-50 cursor-not-allowed" : ""}`}
             >
-              {isReady ? "Cancel ready" : "I'm ready"}
+              {isReady ? (isVoting ? "Ready" : "Cancel ready") : "I'm ready"}
             </button>
           </div>
         </div>
@@ -147,4 +150,5 @@ export default function Home() {
     </div>
   );
 }
+
 
