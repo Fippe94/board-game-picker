@@ -1,17 +1,48 @@
 "use client";
 import type { Game } from "../lib/types";
-import { useRoomStore } from "../store/roomStore";
 
-export function GameRow({ g, condition = () => false, eventTrue = () => null, eventFalse = () => null}: { g: Game; condition?: (id: string) => boolean, eventTrue? : (id:string) => (void),  eventFalse? : (id:string) => (void)}) {
-  
-  const isNominated = useRoomStore().isNominated;
-    var colorName = condition(g.id) ? "green" : "white";
-    var className = `flex items-center justify-between rounded-xl border bg-${colorName} p-2`
+export function GameRow({
+  g,
+  condition = () => false,
+  eventTrue = () => undefined,
+  eventFalse = () => undefined,
+  disabled = false,
+}: {
+  g: Game;
+  condition?: (id: string) => boolean;
+  eventTrue?: (id: string) => void;
+  eventFalse?: (id: string) => void;
+  disabled?: boolean;
+}) {
+  const isActive = condition(g.id);
+  const handleClick = () => {
+    if (disabled) return;
+    if (isActive) {
+      eventTrue(g.id);
+    } else {
+      eventFalse(g.id);
+    }
+  };
+
+  const playersText = g.minPlayers || g.maxPlayers ? `${g.minPlayers ?? "?"}-${g.maxPlayers ?? "?"} players` : "";
+  const timeText = g.time ? `${g.time} min` : "";
+  const nominatorText = isActive && g.nominator ? `nominated by ${g.nominator}` : "";
+
+  const metaParts = [playersText, timeText, nominatorText].filter(Boolean);
+
   return (
-    <div className={className} style={{ backgroundColor: condition(g.id) ? "lightgreen" : "white"}} onClick={() => condition(g.id) ? eventTrue(g.id) : eventFalse(g.id)}>
+    <div
+      className={`flex items-center justify-between rounded-xl border p-2 ${
+        isActive ? "border-green-500 bg-green-100" : "border-gray-200 bg-white"
+      } ${disabled ? "cursor-default opacity-60" : "cursor-pointer hover:bg-gray-50"}`}
+      onClick={handleClick}
+      aria-disabled={disabled}
+    >
       <div>
-        <p className="text-sm font-medium">{g.title}</p>
-        <p className="text-[11px] text-gray-500">{g.minPlayers}–{g.maxPlayers} players {g.time ? `• ${g.time} min` : ""} {g.nominator && isNominated(g.id) ? '• nominated by ' + g.nominator : ''}</p>
+        <p className="text-sm font-medium text-gray-900">{g.title}</p>
+        {metaParts.length > 0 && (
+          <p className="text-[11px] text-gray-500">{metaParts.join(" | ")}</p>
+        )}
       </div>
     </div>
   );

@@ -10,6 +10,19 @@ export function useRoom(rtUrl: string, initialRoom?: string, playerName: string 
   const setRoom = useRoomStore((s) => s.setRoom);
   const setConnected = useRoomStore((s) => s.setConnected);
   const player = playerName;
+
+  const createRoom = () => socketRef.current?.emit("room:create", player);
+  const joinRoom = (id: string) => {
+    setRoom(id);
+    socketRef.current?.emit("room:join", id, player);
+  };
+  const addAvailable = (g: { title: string; minPlayers?: number; maxPlayers?: number; time?: number }) =>
+    socketRef.current?.emit("game:addAvailable", g);
+  const nominate = (id: string) => socketRef.current?.emit("game:nominate", id);
+  const unnominate = (id: string) => socketRef.current?.emit("game:unnominate", id);
+  const setReady = (ready: boolean) => socketRef.current?.emit("player:setReady", ready);
+  const reset = () => socketRef.current?.emit("room:reset");
+
   useEffect(() => {
     const s = getSocket(rtUrl);
     socketRef.current = s;
@@ -20,25 +33,19 @@ export function useRoom(rtUrl: string, initialRoom?: string, playerName: string 
     s.on("room:created", (id: string) => {
       setRoom(id);
     });
-    if (initialRoom && player){
+    if (initialRoom && player) {
       setRoom(initialRoom);
-      joinRoom(initialRoom);
+      s.emit("room:join", initialRoom, player);
     }
 
     return () => {
       // do not disconnect the singleton here if other components still use it
-      s.off("connect"); s.off("disconnect"); s.off("room:snapshot"); s.off("room:created");
+      s.off("connect");
+      s.off("disconnect");
+      s.off("room:snapshot");
+      s.off("room:created");
     };
   }, [rtUrl, initialRoom, setSnapshot, setRoom, setConnected, player]);
-  
-  // Actions
-  const createRoom   = () => socketRef.current?.emit("room:create", player);
-  const joinRoom     = (id: string) => { setRoom(id); socketRef.current?.emit("room:join", id, player); };
-  const addAvailable = (g: { title: string; minPlayers?: number; maxPlayers?: number; time?: number }) =>
-                        socketRef.current?.emit("game:addAvailable", g);
-  const nominate     = (id: string) => socketRef.current?.emit("game:nominate", id);
-  const unnominate   = (id: string) => socketRef.current?.emit("game:unnominate", id);
-  const reset        = () => socketRef.current?.emit("room:reset");
 
-  return { createRoom, joinRoom, addAvailable, nominate, unnominate, reset };
+  return { createRoom, joinRoom, addAvailable, nominate, unnominate, setReady, reset };
 }

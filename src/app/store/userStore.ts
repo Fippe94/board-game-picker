@@ -14,7 +14,7 @@ export const useUserStore = create<UserStore>()(
       setNickname: (n) => set({ nickname: n }),
     }),
     {
-      name: "board-picker-session",
+      name: "board-picker-name",
       // Avoid touching storage on the server; only in the browser.
       storage: createJSONStorage(() => (localStorage)),
     }));

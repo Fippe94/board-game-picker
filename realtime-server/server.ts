@@ -3,26 +3,66 @@ import { Server, Socket } from 'socket.io';
 import { randomBytes } from 'crypto';
 
 type Game = { id: string; title: string; minPlayers?: number; maxPlayers?: number; time?: number; nominator?: string };
-type RoomState = { available: Game[]; nominated: Game[], players: Map<string,Player> };
-type SendableRoomState = { available: Game[]; nominated: Game[], players: Player[] };
-type Player = { id: string, nickName? : string}
+type RoomPhase = 'nomination' | 'voting';
+type Player = { id: string; nickName?: string; ready: boolean };
+type RoomState = { available: Game[]; nominated: Game[]; players: Map<string, Player>; phase: RoomPhase };
+type SendableRoomState = { available: Game[]; nominated: Game[]; players: Player[]; phase: RoomPhase };
 
 // In-memory rooms. Replace with DB later.
 const rooms = new Map<string, RoomState>();
 
 function uid(n = 8) { return randomBytes(n).toString('hex'); }
 
-function mapToArray(map: Map<string,Player>){
-  const array = [];
-  for (const [key, value] of map.entries()) {
-  array.push(value);
-} 
-return array;
+function createPlayer(playerName: string): Player {
+  const id = playerName || uid(6);
+  return { id, nickName: playerName || id, ready: false };
 }
 
-function convertRoomState(roomState: RoomState){
-  var sendable: SendableRoomState = { available: roomState.available, nominated: roomState.nominated, players: mapToArray(roomState.players)};
-  return sendable;
+function ensureRoom(id: string): RoomState {
+  if (!rooms.has(id)) {
+    rooms.set(id, { available: [], nominated: [], players: new Map<string, Player>(), phase: 'nomination' });
+  }
+  return rooms.get(id)!;
+}
+
+function resetToNomination(room: RoomState) {
+  room.phase = 'nomination';
+  room.players.forEach((p) => {
+    p.ready = false;
+  });
+}
+
+function allPlayersReady(room: RoomState) {
+  if (room.players.size === 0) return false;
+  for (const player of room.players.values()) {
+    if (!player.ready) return false;
+  }
+  return true;
+}
+
+function markPlayerNotReady(room: RoomState, actingPlayer: Player | null) {
+  if (!actingPlayer) return;
+  const current = room.players.get(actingPlayer.id);
+  if (!current) return;
+  current.ready = false;
+  room.phase = 'nomination';
+}
+
+function mapToArray(map: Map<string, Player>) {
+  const array: Player[] = [];
+  for (const value of map.values()) {
+    array.push(value);
+  }
+  return array;
+}
+
+function convertRoomState(roomState: RoomState): SendableRoomState {
+  return {
+    available: roomState.available,
+    nominated: roomState.nominated,
+    players: mapToArray(roomState.players),
+    phase: roomState.phase,
+  };
 }
 
 const server = http.createServer();
@@ -37,80 +77,101 @@ io.on('connection', (socket: Socket) => {
   socket.on('room:join', (id: string, playerName: string) => {
     roomId = id;
     socket.join(id);
-    player = {id: playerName, nickName: playerName};
+    player = createPlayer(playerName);
 
-    if (!rooms.has(id)) rooms.set(id, { available: [], nominated: [], players: new Map<string, Player>() });
-    var room = rooms.get(id)!;
+    const room = ensureRoom(id);
+    resetToNomination(room);
     room.players.set(player.id, player);
-    console.log('players: ' + room.players.size)
-    // send snapshot to the clients
-    io.to(roomId).emit('room:snapshot', convertRoomState(rooms.get(id)!));
+    io.to(roomId).emit('room:snapshot', convertRoomState(room));
   });
 
   socket.on('room:create', (playerName: string) => {
     const id = uid(3); // 6 hex chars
-    player = {id: playerName, nickName: playerName};
-
-    rooms.set(id, { available: [], nominated: [], players: new Map<string, Player>() });
-    var room = rooms.get(id)!;
-    room.players.set(player.id, player);
-    socket.join(id);
     roomId = id;
+    player = createPlayer(playerName);
+
+    const room: RoomState = { available: [], nominated: [], players: new Map<string, Player>(), phase: 'nomination' };
+    room.players.set(player.id, player);
+    rooms.set(id, room);
+
+    socket.join(id);
     socket.emit('room:created', id);
-    socket.emit('room:snapshot', convertRoomState(rooms.get(id)!));
+    socket.emit('room:snapshot', convertRoomState(room));
   });
 
   // Mutations
   socket.on('game:addAvailable', (g: Game) => {
     if (!roomId) return;
-    const s = rooms.get(roomId)!;
+    const room = rooms.get(roomId);
+    if (!room || room.phase !== 'nomination') return;
+    markPlayerNotReady(room, player);
     const withId = { ...g, id: g.id || uid(4) };
-    s.available.push(withId);
-    io.to(roomId).emit('room:snapshot', convertRoomState(s));
+    room.available.push(withId);
+    io.to(roomId).emit('room:snapshot', convertRoomState(room));
   });
 
   socket.on('game:nominate', (id: string) => {
     if (!roomId) return;
-    const s = rooms.get(roomId)!;
-    const idx = s.available.findIndex(x => x.id === id);
+    const room = rooms.get(roomId);
+    if (!room || room.phase !== 'nomination') return;
+    const idx = room.available.findIndex(x => x.id === id);
     if (idx === -1) return;
-    let g = s.available[idx];
+    const g = room.available[idx];
     g.nominator = player?.nickName;
-    s.nominated.push(g);
-    io.to(roomId).emit('room:snapshot', convertRoomState(s));
+    markPlayerNotReady(room, player);
+    room.nominated.push(g);
+    io.to(roomId).emit('room:snapshot', convertRoomState(room));
   });
 
   socket.on('game:unnominate', (id: string) => {
     if (!roomId) return;
-    const s = rooms.get(roomId)!;
-    const idx = s.nominated.findIndex(x => x.id === id);
+    const room = rooms.get(roomId);
+    if (!room || room.phase !== 'nomination') return;
+    const idx = room.nominated.findIndex(x => x.id === id);
     if (idx === -1) return;
-    let g = s.nominated[idx];
-    // We only let the nominator remove the game
-    if (g.nominator != player?.nickName){
+    const g = room.nominated[idx];
+    if (g.nominator !== player?.nickName) {
       return;
     }
-    s.nominated.splice(idx, 1);
-    io.to(roomId).emit('room:snapshot', convertRoomState(s));
+    markPlayerNotReady(room, player);
+    room.nominated.splice(idx, 1);
+    io.to(roomId).emit('room:snapshot', convertRoomState(room));
+  });
+
+  socket.on('player:setReady', (ready: boolean) => {
+    if (!roomId || !player) return;
+    const room = rooms.get(roomId);
+    if (!room) return;
+    const current = room.players.get(player.id);
+    if (!current) return;
+    current.ready = ready;
+    room.phase = allPlayersReady(room) ? 'voting' : 'nomination';
+    io.to(roomId).emit('room:snapshot', convertRoomState(room));
   });
 
   socket.on('room:reset', () => {
     if (!roomId) return;
-    const players = rooms.get(roomId)?.players ?? new Map<string,Player>;
-    rooms.set(roomId, { available: [], nominated: [], players: players });
-    io.to(roomId).emit('room:snapshot', convertRoomState(rooms.get(roomId)!));
+    const room = rooms.get(roomId);
+    if (!room) return;
+    room.available = [];
+    room.nominated = [];
+    resetToNomination(room);
+    io.to(roomId).emit('room:snapshot', convertRoomState(room));
   });
 
   socket.on('disconnect', () => {
     if (!roomId) return;
-    const room = rooms.get(roomId)!;
-    if (player){
-      room.players.delete(player?.id);
-      io.to(roomId).emit('room:snapshot', convertRoomState(room));
+    const room = rooms.get(roomId);
+    if (!room) return;
+    if (player) {
+      room.players.delete(player.id);
     }
-    if (room.players.size == 0){
+    if (room.players.size === 0) {
       rooms.delete(roomId);
-    }    
+      return;
+    }
+    room.phase = allPlayersReady(room) ? 'voting' : 'nomination';
+    io.to(roomId).emit('room:snapshot', convertRoomState(room));
   });
 });
 

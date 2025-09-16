@@ -17,7 +17,7 @@ export const useSessionStore = create<SessionState>()(
 
     }),
     {
-      name: "board-picker-session",
+      name: "board-picker-collection",
       // Avoid touching storage on the server; only in the browser.
       storage: createJSONStorage(() => (localStorage)),
     }
