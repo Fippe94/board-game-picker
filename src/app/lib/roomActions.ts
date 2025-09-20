@@ -1,8 +1,9 @@
 "use client";
 import { getSocket } from "./socketSingleton";
 import { Game } from "./types";
+import { getRealtimeUrl } from "./realtimeConfig";
 
-const RT_URL = process.env.NEXT_PUBLIC_RT_URL || "http://161.35.43.235:3030";
+const RT_URL = getRealtimeUrl();
 
 export const roomActions = {
   addAvailable: (g: Game) =>

@@ -14,8 +14,9 @@ import { useRoomStore } from "@/app/store/roomStore";
 import { Player, Game } from "@/app/lib/types";
 import { roomActions } from "@/app/lib/roomActions";
 import { useSessionStore } from "@/app/store/sessionStore";
+import { getRealtimeUrl } from "@/app/lib/realtimeConfig";
 
-const RT_URL = process.env.NEXT_PUBLIC_RT_URL || "http://161.35.43.235:3030";
+const RT_URL = getRealtimeUrl();
 
 export default function Home() {
   const { id } = useParams<{ id: string }>();
