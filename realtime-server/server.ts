@@ -11,12 +11,14 @@ type RoomState = {
   players: Map<string, Player>;
   phase: RoomPhase;
   submissions: Map<string, string[]>;
+  result: Game | null;
 };
 type SendableRoomState = {
   available: Game[];
   nominated: Game[];
   players: Player[];
   phase: RoomPhase;
+  result: Game | null;
 };
 
 // In-memory rooms. Replace with DB later.
@@ -37,6 +39,7 @@ function ensureRoom(id: string): RoomState {
       players: new Map<string, Player>(),
       phase: 'nomination',
       submissions: new Map<string, string[]>(),
+      result: null,
     });
   }
   return rooms.get(id)!;
@@ -104,6 +107,7 @@ function convertRoomState(roomState: RoomState): SendableRoomState {
     nominated: roomState.nominated,
     players: mapToArray(roomState.players),
     phase: roomState.phase,
+    result: roomState.result
   };
 }
 
@@ -138,6 +142,7 @@ io.on('connection', (socket: Socket) => {
       players: new Map<string, Player>(),
       phase: 'nomination',
       submissions: new Map<string, string[]>(),
+      result: null
     };
     room.players.set(player.id, player);
     rooms.set(id, room);
@@ -219,6 +224,9 @@ io.on('connection', (socket: Socket) => {
     current.submitted = true;
     if (allPlayersSubmitted(room)) {
       room.phase = 'result';
+      const idx = room.nominated.findIndex(x => x.id === order[0]);
+      const g = room.nominated[idx];
+      room.result = g;
     }
     io.to(roomId).emit('room:snapshot', convertRoomState(room));
   });

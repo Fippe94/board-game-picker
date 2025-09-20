@@ -9,11 +9,12 @@ type RoomStore = {
   available: Game[];
   nominated: Game[];
   players: Map<string, Player>;
+  result: Game | null;
   isNominated: (id: string) => boolean;
   isAvailable: (id: string) => boolean;
   setRoom: (id: string | null) => void;
   setConnected: (v: boolean) => void;
-  setSnapshot: (snap: { available: Game[]; nominated: Game[]; players: Player[]; phase: RoomPhase }) => void;
+  setSnapshot: (snap: { available: Game[]; nominated: Game[]; players: Player[]; phase: RoomPhase; result: Game | null}) => void;
 };
 
 function convertToMap(array: Player[]) {
@@ -35,6 +36,7 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
   available: [],
   nominated: [],
   players: new Map<string, Player>(),
+  result: null,
   isNominated: (id) => {
     const nominated = get().nominated;
     return nominated.some((x) => x.id === id);
@@ -51,6 +53,7 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
       nominated: snap.nominated,
       players: convertToMap(snap.players),
       phase: snap.phase,
+      result: snap.result
     });
   },
 }));

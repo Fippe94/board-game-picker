@@ -26,6 +26,7 @@ export default function Home() {
   const players = useRoomStore((s) => s.players);
   const phase = useRoomStore((s) => s.phase);
   const nominated = useRoomStore((s) => s.nominated);
+  const result = useRoomStore((s) => s.result);
 
   const playerArray: Player[] = Array.from(players.values());
   const currentPlayer = nickname ? players.get(nickname) : undefined;
@@ -79,9 +80,9 @@ export default function Home() {
           ) : isResult ? (
             <div className="space-y-4">
               <div className="rounded-2xl border bg-white p-4 space-y-2">
-                <h2 className="text-base font-semibold">Results incoming</h2>
+                <h2 className="text-base font-semibold">Result</h2>
                 <p className="text-sm text-gray-600">
-                  All {submittedCount} submission{submittedCount === 1 ? "" : "s"} received. The final ranking will appear here soon.
+                  {result?.title}
                 </p>
               </div>
               <div className="rounded-2xl border bg-white p-4 space-y-2">
