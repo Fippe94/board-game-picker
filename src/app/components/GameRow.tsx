@@ -58,7 +58,7 @@ export function GameRow({
     <div
       className={`flex items-center justify-between gap-3 rounded-xl border p-2 ${
         isActive ? "border-green-500 bg-green-100" : "border-gray-200 bg-white"
-      } ${disabled ? "cursor-default opacity-60" : "cursor-pointer hover:bg-gray-50"}`}
+      } ${disabled ? "cursor-default opacity-60" : "cursor-pointer"}`}
       onClick={handleClick}
       aria-disabled={disabled}
     >
