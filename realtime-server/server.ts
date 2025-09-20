@@ -11,14 +11,14 @@ type RoomState = {
   players: Map<string, Player>;
   phase: RoomPhase;
   submissions: Map<string, string[]>;
-  result: Game | null;
+  result: string[] | null;
 };
 type SendableRoomState = {
   available: Game[];
   nominated: Game[];
   players: Player[];
   phase: RoomPhase;
-  result: Game | null;
+  result: string[] | null;
 };
 
 // In-memory rooms. Replace with DB later.
@@ -99,6 +99,36 @@ function mapToArray(map: Map<string, Player>) {
     array.push(value);
   }
   return array;
+}
+
+function getTopGames(submissions: Map<string, string[]>) : string[] {
+  const numberOfPlayers = submissions.size;
+  const votes = new Map<string,number>();
+  let topResults : string[] = [];
+  var tooLong = false;
+  let i = 0;
+  while (topResults.length == 0 && !tooLong){
+
+    submissions.forEach(
+      (list: string[]) => {
+        const game = list[i];
+        if (game == undefined){
+          tooLong = true;
+        }
+        if (votes.has(game)){
+          votes.set(game, votes.get(game)! + 1);
+          if (votes.get(game) == numberOfPlayers){
+            topResults.push(game);
+          }
+        }
+        else {
+          votes.set(game, 1);
+        }   
+    });    
+    i++;
+  }
+  return topResults;
+
 }
 
 function convertRoomState(roomState: RoomState): SendableRoomState {
@@ -224,9 +254,8 @@ io.on('connection', (socket: Socket) => {
     current.submitted = true;
     if (allPlayersSubmitted(room)) {
       room.phase = 'result';
-      const idx = room.nominated.findIndex(x => x.id === order[0]);
-      const g = room.nominated[idx];
-      room.result = g;
+      var topGames = getTopGames(room.submissions);
+      room.result = topGames;
     }
     io.to(roomId).emit('room:snapshot', convertRoomState(room));
   });

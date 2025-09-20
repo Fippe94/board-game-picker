@@ -76,14 +76,14 @@ export default function Home() {
               <div className="rounded-2xl border bg-white p-4 space-y-2">
                 <h2 className="text-base font-semibold">Results</h2>
                 <p className="text-sm text-gray-600">
-                  {result?.title}
+                  {result != null ? result.join("\n") : ""}
                 </p>
               </div>
               <div className="rounded-2xl border bg-white p-4 space-y-2">
                 <h3 className="text-sm font-semibold">Nominated games</h3>
                 <ul className="space-y-2 text-sm text-gray-700">
-                  {nominated.length ? (
-                    nominated.map((game, index) => (
+                  {votingOrder.length ? (
+                    votingOrder.map((game, index) => (
                       <li key={game.id} className="flex items-start justify-between gap-3">
                         <span className="text-gray-500">{index + 1}.</span>
                         <span className="flex-1 font-medium text-gray-900">{game.title}</span>

@@ -9,12 +9,12 @@ type RoomStore = {
   available: Game[];
   nominated: Game[];
   players: Map<string, Player>;
-  result: Game | null;
+  result: string[] | null;
   isNominated: (id: string) => boolean;
   isAvailable: (id: string) => boolean;
   setRoom: (id: string | null) => void;
   setConnected: (v: boolean) => void;
-  setSnapshot: (snap: { available: Game[]; nominated: Game[]; players: Player[]; phase: RoomPhase; result: Game | null}) => void;
+  setSnapshot: (snap: { available: Game[]; nominated: Game[]; players: Player[]; phase: RoomPhase; result: string[] | null}) => void;
 };
 
 function convertToMap(array: Player[]) {
