@@ -9,10 +9,11 @@ export type Game = {
   nominator?: string;
 };
 
-export type RoomPhase = "nomination" | "voting";
+export type RoomPhase = "nomination" | "voting" | "result";
 
 export type Player = {
   id: string;
   nickName?: string;
   ready: boolean;
+  submitted?: boolean;
 };

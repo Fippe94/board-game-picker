@@ -3,10 +3,21 @@ import { Server, Socket } from 'socket.io';
 import { randomBytes } from 'crypto';
 
 type Game = { id: string; title: string; minPlayers?: number; maxPlayers?: number; time?: number; nominator?: string };
-type RoomPhase = 'nomination' | 'voting';
-type Player = { id: string; nickName?: string; ready: boolean };
-type RoomState = { available: Game[]; nominated: Game[]; players: Map<string, Player>; phase: RoomPhase };
-type SendableRoomState = { available: Game[]; nominated: Game[]; players: Player[]; phase: RoomPhase };
+type RoomPhase = 'nomination' | 'voting' | 'result';
+type Player = { id: string; nickName?: string; ready: boolean; submitted: boolean };
+type RoomState = {
+  available: Game[];
+  nominated: Game[];
+  players: Map<string, Player>;
+  phase: RoomPhase;
+  submissions: Map<string, string[]>;
+};
+type SendableRoomState = {
+  available: Game[];
+  nominated: Game[];
+  players: Player[];
+  phase: RoomPhase;
+};
 
 // In-memory rooms. Replace with DB later.
 const rooms = new Map<string, RoomState>();
@@ -15,20 +26,28 @@ function uid(n = 8) { return randomBytes(n).toString('hex'); }
 
 function createPlayer(playerName: string): Player {
   const id = playerName || uid(6);
-  return { id, nickName: playerName || id, ready: false };
+  return { id, nickName: playerName || id, ready: false, submitted: false };
 }
 
 function ensureRoom(id: string): RoomState {
   if (!rooms.has(id)) {
-    rooms.set(id, { available: [], nominated: [], players: new Map<string, Player>(), phase: 'nomination' });
+    rooms.set(id, {
+      available: [],
+      nominated: [],
+      players: new Map<string, Player>(),
+      phase: 'nomination',
+      submissions: new Map<string, string[]>(),
+    });
   }
   return rooms.get(id)!;
 }
 
 function resetToNomination(room: RoomState) {
   room.phase = 'nomination';
+  room.submissions.clear();
   room.players.forEach((p) => {
     p.ready = false;
+    p.submitted = false;
   });
 }
 
@@ -45,7 +64,30 @@ function markPlayerNotReady(room: RoomState, actingPlayer: Player | null) {
   const current = room.players.get(actingPlayer.id);
   if (!current) return;
   current.ready = false;
+  current.submitted = false;
+  room.submissions.clear();
+  room.players.forEach((p) => {
+    p.submitted = false;
+  });
   room.phase = 'nomination';
+}
+
+function allPlayersSubmitted(room: RoomState) {
+  if (room.players.size === 0) return false;
+  for (const player of room.players.values()) {
+    if (!player.submitted) return false;
+  }
+  return true;
+}
+
+function startVoting(room: RoomState) {
+  if (room.phase !== 'voting') {
+    room.submissions.clear();
+    room.players.forEach((p) => {
+      p.submitted = false;
+    });
+  }
+  room.phase = 'voting';
 }
 
 function mapToArray(map: Map<string, Player>) {
@@ -90,7 +132,13 @@ io.on('connection', (socket: Socket) => {
     roomId = id;
     player = createPlayer(playerName);
 
-    const room: RoomState = { available: [], nominated: [], players: new Map<string, Player>(), phase: 'nomination' };
+    const room: RoomState = {
+      available: [],
+      nominated: [],
+      players: new Map<string, Player>(),
+      phase: 'nomination',
+      submissions: new Map<string, string[]>(),
+    };
     room.players.set(player.id, player);
     rooms.set(id, room);
 
@@ -145,7 +193,33 @@ io.on('connection', (socket: Socket) => {
     const current = room.players.get(player.id);
     if (!current) return;
     current.ready = ready;
-    room.phase = allPlayersReady(room) ? 'voting' : 'nomination';
+    if (!ready) {
+      current.submitted = false;
+      room.submissions.delete(current.id);
+      room.phase = 'nomination';
+    } else {
+      current.submitted = false;
+      room.submissions.delete(current.id);
+      if (allPlayersReady(room)) {
+        startVoting(room);
+      } else {
+        room.phase = 'nomination';
+      }
+    }
+    io.to(roomId).emit('room:snapshot', convertRoomState(room));
+  });
+
+  socket.on('vote:submit', (order: string[]) => {
+    if (!roomId || !player) return;
+    const room = rooms.get(roomId);
+    if (!room || room.phase !== 'voting') return;
+    const current = room.players.get(player.id);
+    if (!current) return;
+    room.submissions.set(player.id, order);
+    current.submitted = true;
+    if (allPlayersSubmitted(room)) {
+      room.phase = 'result';
+    }
     io.to(roomId).emit('room:snapshot', convertRoomState(room));
   });
 
@@ -155,6 +229,7 @@ io.on('connection', (socket: Socket) => {
     if (!room) return;
     room.available = [];
     room.nominated = [];
+    room.submissions.clear();
     resetToNomination(room);
     io.to(roomId).emit('room:snapshot', convertRoomState(room));
   });
@@ -164,13 +239,26 @@ io.on('connection', (socket: Socket) => {
     const room = rooms.get(roomId);
     if (!room) return;
     if (player) {
+      room.submissions.delete(player.id);
       room.players.delete(player.id);
     }
     if (room.players.size === 0) {
       rooms.delete(roomId);
       return;
     }
-    room.phase = allPlayersReady(room) ? 'voting' : 'nomination';
+    const shouldBeVoting = allPlayersReady(room);
+    if (room.phase === 'result') {
+      if (!allPlayersSubmitted(room)) {
+        room.phase = shouldBeVoting ? 'voting' : 'nomination';
+        if (room.phase === 'voting') {
+          startVoting(room);
+        }
+      }
+    } else if (shouldBeVoting) {
+      startVoting(room);
+    } else {
+      room.phase = 'nomination';
+    }
     io.to(roomId).emit('room:snapshot', convertRoomState(room));
   });
 });

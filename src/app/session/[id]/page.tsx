@@ -5,41 +5,39 @@ import NominatedList from "../../components/NominatedList";
 import AddGameForm from "../../components/AddGameForm";
 import MyCollectionPicker from "../../components/MyCollectionPicker";
 import VotingList from "../../components/VotingList";
-import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
-import 'react-tabs/style/react-tabs.css';
+import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
+import "react-tabs/style/react-tabs.css";
 import { useRoom } from "../../lib/useRoom";
 import { useParams } from "next/navigation";
-import { useUserStore } from '@/app/store/userStore';
-import { useRoomStore } from '@/app/store/roomStore';
-import { Player, Game } from '@/app/lib/types';
+import { useUserStore } from "@/app/store/userStore";
+import { useRoomStore } from "@/app/store/roomStore";
+import { Player, Game } from "@/app/lib/types";
 import { roomActions } from "@/app/lib/roomActions";
 import { useSessionStore } from "@/app/store/sessionStore";
+
 const RT_URL = process.env.NEXT_PUBLIC_RT_URL || "http://161.35.43.235:3030";
 
 export default function Home() {
   const { id } = useParams<{ id: string }>();
   const nickname = useUserStore((s) => s.nickname);
-  useRoom(RT_URL, id, nickname); // initializes socket & store ONCE
+  useRoom(RT_URL, id, nickname);
   const addToMyCollection = useSessionStore((s) => s.addToMyCollection);
   const players = useRoomStore((s) => s.players);
-  const roomId = useRoomStore((s) => s.roomId);
   const phase = useRoomStore((s) => s.phase);
   const nominated = useRoomStore((s) => s.nominated);
 
   const playerArray: Player[] = Array.from(players.values());
   const currentPlayer = nickname ? players.get(nickname) : undefined;
-  const isReady = currentPlayer?.ready ?? false;
   const isVoting = phase === "voting";
-  const canToggleReady = !isVoting || !isReady;
-  const toggleReady = () => {
-    if (!canToggleReady) return;
-    roomActions.setReady(!isReady);
-  };
+  const isResult = phase === "result";
+  const hasSubmitted = currentPlayer?.submitted ?? false;
+  const submittedCount = playerArray.filter((p) => p.submitted).length;
 
-  const otherPlayers = currentPlayer
-    ? playerArray.filter((p) => p.id !== currentPlayer.id)
-    : playerArray;
   const [votingOrder, setVotingOrder] = useState<Game[]>([]);
+  const handleSubmitVote = () => {
+    if (!votingOrder.length || hasSubmitted) return;
+    roomActions.submitVote(votingOrder.map((g) => g.id));
+  };
 
   useEffect(() => {
     if (!isVoting) {
@@ -67,51 +65,40 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
-      <header className="sticky top-0 z-20 backdrop-blur bg-white/80 border-b">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-2xl bg-black text-white grid place-items-center font-bold">BG</div>
-            <div>
-              <h1 className="text-lg font-semibold">Board Game Picker</h1>
-              <p className="text-xs text-gray-500">Room: {roomId}</p>
-              <p className="text-xs text-gray-500">You: {nickname}</p>
-              <p className="text-xs text-gray-500">Phase: {isVoting ? "Voting" : "Nomination"}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className={`text-xs font-medium ${isReady ? "text-green-600" : "text-gray-500"}`}>
-              {isReady ? "Ready" : "Not ready"}
-            </span>
-            <button
-              onClick={toggleReady}
-              disabled={!nickname || !canToggleReady}
-              className={`rounded-xl px-3 py-1 text-sm font-medium border transition ${
-                isReady ? "border-green-600 text-green-700 bg-green-50" : "border-black text-white bg-black"
-              } ${(!nickname || !canToggleReady) ? "opacity-50 cursor-not-allowed" : ""}`}
-            >
-              {isReady ? (isVoting ? "Ready" : "Cancel ready") : "I'm ready"}
-            </button>
-          </div>
-        </div>
-        {otherPlayers.length > 0 && (
-          <div className="max-w-5xl mx-auto px-4 pb-3">
-            <h3 className="text-xs font-semibold text-gray-500">Other players</h3>
-            <ul className="mt-1 space-y-1">
-              {otherPlayers.map((p) => (
-                <li key={p.id} className="flex items-center justify-between text-xs text-gray-600">
-                  <span>{p.nickName || p.id}</span>
-                  <span className={p.ready ? "text-green-600" : "text-gray-400"}>{p.ready ? "Ready" : "Not ready"}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </header>
-
       <main className="max-w-5xl mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-2 gap-6">
         <section>
           {isVoting ? (
-            <VotingList games={votingOrder} onChange={setVotingOrder} />
+            <VotingList
+              games={votingOrder}
+              onChange={setVotingOrder}
+              onSubmit={handleSubmitVote}
+              canSubmit={isVoting && Boolean(nickname)}
+              isSubmitted={hasSubmitted}
+            />
+          ) : isResult ? (
+            <div className="space-y-4">
+              <div className="rounded-2xl border bg-white p-4 space-y-2">
+                <h2 className="text-base font-semibold">Results incoming</h2>
+                <p className="text-sm text-gray-600">
+                  All {submittedCount} submission{submittedCount === 1 ? "" : "s"} received. The final ranking will appear here soon.
+                </p>
+              </div>
+              <div className="rounded-2xl border bg-white p-4 space-y-2">
+                <h3 className="text-sm font-semibold">Nominated games</h3>
+                <ul className="space-y-2 text-sm text-gray-700">
+                  {nominated.length ? (
+                    nominated.map((game, index) => (
+                      <li key={game.id} className="flex items-start justify-between gap-3">
+                        <span className="text-gray-500">{index + 1}.</span>
+                        <span className="flex-1 font-medium text-gray-900">{game.title}</span>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="text-gray-500">No games nominated.</li>
+                  )}
+                </ul>
+              </div>
+            </div>
           ) : (
             <Tabs>
               <TabList>
@@ -150,5 +137,3 @@ export default function Home() {
     </div>
   );
 }
-
-

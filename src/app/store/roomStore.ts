@@ -19,7 +19,11 @@ type RoomStore = {
 function convertToMap(array: Player[]) {
   const map = new Map<string, Player>();
   array.forEach((player) => {
-    map.set(player.id, { ...player, ready: player.ready ?? false });
+    map.set(player.id, {
+      ...player,
+      ready: player.ready ?? false,
+      submitted: player.submitted ?? false,
+    });
   });
   return map;
 }
