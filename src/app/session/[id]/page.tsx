@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import AvailableList from "../../components/AvailableList";
 import NominatedList from "../../components/NominatedList";
 import AddGameForm from "../../components/AddGameForm";
@@ -11,7 +11,7 @@ import { useRoom } from "../../lib/useRoom";
 import { useParams } from "next/navigation";
 import { useUserStore } from "@/app/store/userStore";
 import { useRoomStore } from "@/app/store/roomStore";
-import { Player, Game } from "@/app/lib/types";
+import { Player } from "@/app/lib/types";
 import { roomActions } from "@/app/lib/roomActions";
 import { useSessionStore } from "@/app/store/sessionStore";
 import { getRealtimeUrl } from "@/app/lib/realtimeConfig";
@@ -26,6 +26,9 @@ export default function Home() {
   const players = useRoomStore((s) => s.players);
   const phase = useRoomStore((s) => s.phase);
   const nominated = useRoomStore((s) => s.nominated);
+  const votingOrder = useSessionStore((s) => s.votingOrder);
+  const setVotingOrder = useSessionStore((s) => s.setVotingOrder);
+  const resetVotingOrder = useSessionStore((s) => s.resetVotingOrder);
   const result = useRoomStore((s) => s.result);
 
   const playerArray: Player[] = Array.from(players.values());
@@ -35,17 +38,9 @@ export default function Home() {
   const hasSubmitted = currentPlayer?.submitted ?? false;
   const submittedCount = playerArray.filter((p) => p.submitted).length;
 
-  const [votingOrder, setVotingOrder] = useState<Game[]>([]);
-  const handleSubmitVote = () => {
-    if (!votingOrder.length || hasSubmitted) return;
-    roomActions.submitVote(votingOrder.map((g) => g.id));
-  };
-
   useEffect(() => {
     if (!isVoting) {
-      if (votingOrder.length) {
-        setVotingOrder([]);
-      }
+      resetVotingOrder();
       return;
     }
 
@@ -63,7 +58,7 @@ export default function Home() {
       });
       return preserved;
     });
-  }, [isVoting, nominated]);
+  }, [isVoting, nominated, resetVotingOrder, setVotingOrder]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
@@ -73,14 +68,13 @@ export default function Home() {
             <VotingList
               games={votingOrder}
               onChange={setVotingOrder}
-              onSubmit={handleSubmitVote}
               canSubmit={isVoting && Boolean(nickname)}
               isSubmitted={hasSubmitted}
             />
           ) : isResult ? (
             <div className="space-y-4">
               <div className="rounded-2xl border bg-white p-4 space-y-2">
-                <h2 className="text-base font-semibold">Result</h2>
+                <h2 className="text-base font-semibold">Results</h2>
                 <p className="text-sm text-gray-600">
                   {result?.title}
                 </p>

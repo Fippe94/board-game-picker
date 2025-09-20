@@ -29,13 +29,12 @@ type SortableAttributes = SortableInstance["attributes"];
 
 interface VotingListProps {
   games: Game[];
-  onChange: (next: Game[]) => void;
-  onSubmit: (finalOrder: Game[]) => void;
+  onChange: (next: Game[] | ((prev: Game[]) => Game[])) => void;
   canSubmit: boolean;
   isSubmitted: boolean;
 }
 
-export default function VotingList({ games, onChange, onSubmit, canSubmit, isSubmitted }: VotingListProps) {
+export default function VotingList({ games, onChange, canSubmit, isSubmitted }: VotingListProps) {
   const sensors = useSensors(
     useSensor(MouseSensor),
     useSensor(TouchSensor, {
@@ -68,13 +67,6 @@ export default function VotingList({ games, onChange, onSubmit, canSubmit, isSub
   };
 
   const handleDragCancel = () => setActiveId(null);
-
-  const submitDisabled = disableInteractions || !games.length;
-
-  const handleSubmit = () => {
-    if (submitDisabled) return;
-    onSubmit(games);
-  };
 
   const activeGame = useMemo(() => {
     if (!activeId) return null;
@@ -118,23 +110,6 @@ export default function VotingList({ games, onChange, onSubmit, canSubmit, isSub
           ) : null}
         </DragOverlay>
       </DndContext>
-      <div className="flex items-center justify-between gap-3 pt-2">
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={submitDisabled}
-          className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-            submitDisabled
-              ? "cursor-not-allowed border border-gray-200 bg-gray-100 text-gray-400"
-              : "border border-black bg-black text-white hover:bg-white hover:text-black"
-          }`}
-        >
-          {isSubmitted ? "Ranking submitted" : "Submit ranking"}
-        </button>
-        <p className="flex-1 text-right text-xs text-gray-500">
-          {isSubmitted ? "Waiting for other players..." : "Submit when you're happy with the order."}
-        </p>
-      </div>
     </div>
   );
 }

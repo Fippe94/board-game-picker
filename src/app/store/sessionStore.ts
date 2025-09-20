@@ -5,9 +5,12 @@ import type { Game } from "../lib/types";
 
 export type SessionState = {
   myCollection: Game[];
+  votingOrder: Game[];
   addToMyCollection: (g: Game) => void;
   updateMyCollection: (id: string, updated: Game) => void;
   removeFromMyCollection: (id: string) => void;
+  setVotingOrder: (updater: Game[] | ((prev: Game[]) => Game[])) => void;
+  resetVotingOrder: () => void;
 };
 
 const toGame = (game: Game): Game => {
@@ -23,6 +26,7 @@ export const useSessionStore = create<SessionState>()(
   persist(
     (set) => ({
       myCollection: [],
+      votingOrder: [],
       addToMyCollection: (game) =>
         set((state) => {
           const nextGame = toGame(game);
@@ -47,6 +51,14 @@ export const useSessionStore = create<SessionState>()(
         set((state) => ({
           myCollection: state.myCollection.filter((game) => game.id !== id),
         })),
+      setVotingOrder: (updater) =>
+        set((state) => ({
+          votingOrder:
+            typeof updater === "function"
+              ? (updater as (prev: Game[]) => Game[])(state.votingOrder)
+              : updater,
+        })),
+      resetVotingOrder: () => set({ votingOrder: [] }),
     }),
     {
       name: "board-picker-collection",
@@ -54,4 +66,3 @@ export const useSessionStore = create<SessionState>()(
     }
   )
 );
-

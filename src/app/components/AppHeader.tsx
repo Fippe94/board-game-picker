@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useUserStore } from "@/app/store/userStore";
 import { useRoomStore } from "@/app/store/roomStore";
+import { useSessionStore } from "@/app/store/sessionStore";
 import { roomActions } from "@/app/lib/roomActions";
 import type { Player } from "@/app/lib/types";
 
@@ -32,8 +33,8 @@ export function AppHeader() {
   const nickname = useUserStore((s) => s.nickname);
   const phase = useRoomStore((s) => s.phase);
   const roomId = useRoomStore((s) => s.roomId);
-  const nominated = useRoomStore((s) => s.nominated);
   const players = useRoomStore((s) => s.players);
+  const votingOrder = useSessionStore((s) => s.votingOrder);
 
   const playerArray = useMemo(() => Array.from(players.values()), [players]);
   const currentPlayer = nickname ? players.get(nickname) : undefined;
@@ -66,6 +67,15 @@ export function AppHeader() {
     roomActions.setReady(!isReady);
   };
 
+  const handleSubmitRanking = () => {
+    if (!isVoting || hasSubmitted || !nickname || !roomId || !votingOrder.length) {
+      return;
+    }
+    roomActions.submitVote(votingOrder.map((g) => g.id));
+  };
+
+  const submitDisabled = !isVoting || hasSubmitted || !nickname || !roomId || !votingOrder.length;
+
   const showSubmissions = Boolean(roomId) && (isVoting || isResult);
   const showOtherPlayers = Boolean(roomId) && otherPlayers.length > 0;
 
@@ -91,15 +101,35 @@ export function AppHeader() {
             {myStatus.label}
           </span>
           {Boolean(roomId) && (
-            <button
-              onClick={handleToggleReady}
-              disabled={!nickname || !canToggleReady}
-              className={`rounded-xl px-3 py-1 text-sm font-medium border transition ${
-                isReady ? "border-green-600 text-green-700 bg-green-50" : "border-black text-white bg-black"
-              } ${(!nickname || !canToggleReady) ? "opacity-50 cursor-not-allowed" : ""}`}
-            >
-              {isReady ? (phase === "nomination" ? "Cancel ready" : "Ready") : "I'm ready"}
-            </button>
+            isVoting ? (
+              <div className="flex flex-col items-end gap-1">
+                <button
+                  type="button"
+                  onClick={handleSubmitRanking}
+                  disabled={submitDisabled}
+                  className={`rounded-xl px-3 py-1 text-sm font-medium border transition ${
+                    submitDisabled
+                      ? "cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400"
+                      : "border-black bg-black text-white hover:bg-white hover:text-black"
+                  }`}
+                >
+                  {hasSubmitted ? "Ranking submitted" : "Submit ranking"}
+                </button>
+                <p className="text-[11px] text-gray-500">
+                  {hasSubmitted ? "Waiting for other players..." : "Submit when you're happy with the order."}
+                </p>
+              </div>
+            ) : (
+              <button
+                onClick={handleToggleReady}
+                disabled={!nickname || !canToggleReady}
+                className={`rounded-xl px-3 py-1 text-sm font-medium border transition ${
+                  isReady ? "border-green-600 text-green-700 bg-green-50" : "border-black text-white bg-black"
+                } ${(!nickname || !canToggleReady) ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                {isReady ? (phase === "nomination" ? "Cancel ready" : "Ready") : "I'm ready"}
+              </button>
+            )
           )}
         </div>
       </div>
