@@ -39,8 +39,8 @@ export default function VotingList({ games, onChange, canSubmit, isSubmitted }: 
     useSensor(MouseSensor),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 100,
-        tolerance: 5,
+        delay: 200,
+        tolerance: 8,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -172,7 +172,7 @@ function VotingRow({
         ...style,
         pointerEvents: dragOverlay ? "none" : undefined,
         cursor: dragOverlay ? "grabbing" : disabled ? "default" : "grab",
-        touchAction: "none",
+        touchAction: dragOverlay ? "none" : "pan-y",
       }}
       className={`flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 transition ${
         dragOverlay ? "shadow-xl" : ""
