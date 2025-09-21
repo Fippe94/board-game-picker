@@ -10,7 +10,6 @@ export type SessionState = {
   updateMyCollection: (id: string, updated: Game) => void;
   removeFromMyCollection: (id: string) => void;
   setVotingOrder: (updater: Game[] | ((prev: Game[]) => Game[])) => void;
-  resetVotingOrder: () => void;
 };
 
 const toGame = (game: Game): Game => {
@@ -58,7 +57,6 @@ export const useSessionStore = create<SessionState>()(
               ? (updater as (prev: Game[]) => Game[])(state.votingOrder)
               : updater,
         })),
-      resetVotingOrder: () => set({ votingOrder: [] }),
     }),
     {
       name: "board-picker-collection",

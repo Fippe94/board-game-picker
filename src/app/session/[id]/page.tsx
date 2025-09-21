@@ -28,7 +28,6 @@ export default function Home() {
   const nominated = useRoomStore((s) => s.nominated);
   const votingOrder = useSessionStore((s) => s.votingOrder);
   const setVotingOrder = useSessionStore((s) => s.setVotingOrder);
-  const resetVotingOrder = useSessionStore((s) => s.resetVotingOrder);
   const result = useRoomStore((s) => s.result);
 
   const playerArray: Player[] = Array.from(players.values());
@@ -39,10 +38,10 @@ export default function Home() {
   const submittedCount = playerArray.filter((p) => p.submitted).length;
 
   useEffect(() => {
-    if (!isVoting) {
-      resetVotingOrder();
-      return;
-    }
+    // if (!isVoting) {
+    //   resetVotingOrder();
+    //   return;
+    // }
 
     setVotingOrder((prev) => {
       if (!nominated.length) return [];
@@ -58,7 +57,7 @@ export default function Home() {
       });
       return preserved;
     });
-  }, [isVoting, nominated, resetVotingOrder, setVotingOrder]);
+  }, [isVoting, nominated, setVotingOrder]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">

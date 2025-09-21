@@ -24,6 +24,29 @@ type SendableRoomState = {
 // In-memory rooms. Replace with DB later.
 const rooms = new Map<string, RoomState>();
 
+const DEFAULT_DISCONNECT_GRACE_MS = 15000;
+const DISCONNECT_GRACE_MS = (() => {
+  const raw = Number(process.env.DISCONNECT_GRACE_MS);
+  return Number.isFinite(raw) && raw >= 0 ? raw : DEFAULT_DISCONNECT_GRACE_MS;
+})();
+const pendingRemovals = new Map<string, NodeJS.Timeout>();
+
+function removalKey(roomId: string, playerId: string) {
+  return `${roomId}:${playerId}`;
+}
+
+function cancelPendingRemoval(roomId: string, playerId: string) {
+  const key = removalKey(roomId, playerId);
+  const timeout = pendingRemovals.get(key);
+  if (timeout) {
+    clearTimeout(timeout);
+    pendingRemovals.delete(key);
+    return true;
+  }
+  return false;
+}
+
+
 function uid(n = 8) { return randomBytes(n).toString('hex'); }
 
 function createPlayer(playerName: string): Player {
@@ -153,10 +176,17 @@ io.on('connection', (socket: Socket) => {
   socket.on('room:join', (id: string, playerName: string) => {
     roomId = id;
     socket.join(id);
-    player = createPlayer(playerName);
 
     const room = ensureRoom(id);
-    resetToNomination(room);
+    const existing = playerName ? room.players.get(playerName) : undefined;
+    if (existing) {
+      cancelPendingRemoval(id, existing.id);
+      player = existing;
+    } else {
+      player = createPlayer(playerName);
+      resetToNomination(room);
+    }
+
     room.players.set(player.id, player);
     io.to(roomId).emit('room:snapshot', convertRoomState(room));
   });
@@ -272,31 +302,53 @@ io.on('connection', (socket: Socket) => {
   });
 
   socket.on('disconnect', () => {
-    if (!roomId) return;
-    const room = rooms.get(roomId);
-    if (!room) return;
-    if (player) {
-      room.submissions.delete(player.id);
-      room.players.delete(player.id);
-    }
-    if (room.players.size === 0) {
-      rooms.delete(roomId);
+    if (!roomId || !player) return;
+    const leavingRoomId = roomId;
+    const leavingPlayer = player;
+
+    const room = rooms.get(leavingRoomId);
+    if (!room) {
       return;
     }
-    const shouldBeVoting = allPlayersReady(room);
-    if (room.phase === 'result') {
-      if (!allPlayersSubmitted(room)) {
-        room.phase = shouldBeVoting ? 'voting' : 'nomination';
-        if (room.phase === 'voting') {
-          startVoting(room);
-        }
-      }
-    } else if (shouldBeVoting) {
-      startVoting(room);
-    } else {
-      room.phase = 'nomination';
+
+    const key = removalKey(leavingRoomId, leavingPlayer.id);
+    if (pendingRemovals.has(key)) {
+      return;
     }
-    io.to(roomId).emit('room:snapshot', convertRoomState(room));
+
+    const timeout = setTimeout(() => {
+      pendingRemovals.delete(key);
+
+      const activeRoom = rooms.get(leavingRoomId);
+      if (!activeRoom) {
+        return;
+      }
+
+      activeRoom.submissions.delete(leavingPlayer.id);
+      activeRoom.players.delete(leavingPlayer.id);
+
+      if (activeRoom.players.size === 0) {
+        rooms.delete(leavingRoomId);
+        return;
+      }
+
+      const shouldBeVoting = allPlayersReady(activeRoom);
+      if (activeRoom.phase === 'result') {
+        if (!allPlayersSubmitted(activeRoom)) {
+          activeRoom.phase = shouldBeVoting ? 'voting' : 'nomination';
+          if (activeRoom.phase === 'voting') {
+            startVoting(activeRoom);
+          }
+        }
+      } else if (shouldBeVoting) {
+        startVoting(activeRoom);
+      } else {
+        activeRoom.phase = 'nomination';
+      }
+      io.to(leavingRoomId).emit('room:snapshot', convertRoomState(activeRoom));
+    }, DISCONNECT_GRACE_MS);
+
+    pendingRemovals.set(key, timeout);
   });
 });
 
